@@ -13,6 +13,26 @@ import { VideoPlayer } from '../video/video-player'
 
 const VEO_MODEL_OPTIONS = [
   { 
+    label: "Videos with Veo 3.1 Preview Fast 🔈", 
+    modelName: "veo-3.1-fast-generate-preview",
+    generateAudio: true
+  },
+  { 
+    label: "Videos with 3.1 Preview Fast", 
+    modelName: "veo-3.1-fast-generate-preview",
+    generateAudio: false
+  },
+  { 
+    label: "Videos with Veo 3.1 🔈", 
+    modelName: "veo-3.1-generate-preview",
+    generateAudio: true
+  },
+  { 
+    label: "Videos with 3.1", 
+    modelName: "veo-3.1-generate-preview",
+    generateAudio: false
+  },
+  { 
     label: "Videos with Veo 3.0 Fast 🔈", 
     modelName: "veo-3.0-fast-generate-001",
     generateAudio: true

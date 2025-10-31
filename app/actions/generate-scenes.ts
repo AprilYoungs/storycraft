@@ -11,7 +11,8 @@ import { getRAIUserMessage } from '@/lib/rai'
 
 import { Scenario, Language } from "../types"
 import logger from '../logger';
-import { createCollage } from './resize-image';
+import { createCollage, resizeImage } from './resize-image';
+import { gcsUriToBase64 } from '@/lib/storage';
 
 export async function generateScenario(name: string, pitch: string, numScenes: number, style: string, aspectRatio: string, durationSeconds: number, language: Language, modelName: string = 'gemini-2.5-flash', thinkingBudget: number = 0): Promise<Scenario> {
   try {
@@ -385,7 +386,13 @@ export async function generateStoryboard(scenario: Scenario, numScenes: number, 
             )
           }
           if (result.success) {
-            return { ...scene, imageGcsUri: result.imageGcsUri };
+            let resizedimageUri;
+            if (scenario.aspectRatio === "16:9") {
+              resizedimageUri = await resizeImage(await gcsUriToBase64(result.imageGcsUri!), 1980, 1080)
+            } else {
+              resizedimageUri = await resizeImage(await gcsUriToBase64(result.imageGcsUri!), 1080, 1920)
+            }
+            return { ...scene, imageGcsUri: resizedimageUri };
           } else {
             throw { ...scene, errorMessage: result.errorMessage };
           }

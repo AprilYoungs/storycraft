@@ -65,6 +65,7 @@ export async function generateImageRest(prompt: string, aspectRatio?: string, en
               storageUri: GCS_VIDEOS_STORAGE_URI,
               enhancePrompt: enhancePrompt !== undefined ? enhancePrompt : false,
               language: 'auto',
+              sampleImageSize: '2K', // '1K'
               // seed: 1005,
               addWatermark: false,
             },

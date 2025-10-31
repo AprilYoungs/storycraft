@@ -6,7 +6,7 @@ import sharp from 'sharp'
 import { v4 as uuidv4 } from 'uuid'
 import logger from '../logger';
 
-export async function resizeImage(base64Image: string): Promise<string> {
+export async function resizeImage(base64Image: string, width: number = 1920, height: number = 1080): Promise<string> {
   logger.debug('Resizing image')
   try {
     // Remove data URL prefix if present

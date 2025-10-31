@@ -128,6 +128,8 @@ export async function generateSceneVideo(prompt: string, imageGcsUri: string, as
               aspectRatio: aspectRatio,
               generateAudio: generateAudio,
               durationSeconds: durationSeconds,
+              compressionQuality: "optimized", // "lossless"
+              resolution: "1080p", // "720p"
             },
           }),
         }
