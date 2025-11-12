@@ -84,11 +84,20 @@ terraform apply --auto-approve
 1.  **Get the Redirect URL:** After `terraform apply` completes, locate the **`redirect_url`** output value:
 
     ```bash
+    terraform output service_url
     terraform output redirect_url
     ```
-    (Example output: `https://storycraft-123456789.us-central1.run.app/api/auth/callback/google`)
+    (Example output: `https://storycraft-123456789.us-central1.run.app`
+    `https://storycraft-123456789.us-central1.run.app/api/auth/callback/google`)
 
-2.  **Register the URI:** Go back to the **Google Cloud Console** $\rightarrow$ **APIs & Services** $\rightarrow$ **Credentials**.
+2. **Register Authorized Javascript Origins** Go back to the **Google Cloud Console** $\rightarrow$ **APIs & Services** $\rightarrow$ **Credentials**.
+    * Click the name of your OAuth 2.0 Client ID (e.g., `Storycraft Web Client`).
+    * Under **uthorized Javascript Origins**, click **ADD URI**.
+    * **Paste the exact URL obtained from the `terraform output service_url` command.**
+    * Click **SAVE**.
+
+
+3.  **Register the URI:** Go back to the **Google Cloud Console** $\rightarrow$ **APIs & Services** $\rightarrow$ **Credentials**.
     * Click the name of your OAuth 2.0 Client ID (e.g., `Storycraft Web Client`).
     * Under **Authorized redirect URIs**, click **ADD URI**.
     * **Paste the exact URL obtained from the `terraform output redirect_url` command.**
