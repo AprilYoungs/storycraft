@@ -1,6 +1,6 @@
 output "service_url" {
   description = "The URL of the deployed Cloud Run service"
-  value       = google_cloud_run_v2_service.storycraft_service.uri
+  value       = local.cloudrun_url
 }
 
 output "service_account_email" {
@@ -23,10 +23,6 @@ output "artifact_registry_repository" {
   value       = google_artifact_registry_repository.storycraft_repo.name
 }
 
-output "container_image_uri" {
-  description = "The base URI for pushing container images"
-  value       = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.storycraft_repo.repository_id}"
-}
 
 output "project_id" {
   description = "The GCP project ID"
@@ -36,4 +32,14 @@ output "project_id" {
 output "region" {
   description = "The GCP region"
   value       = var.region
+}
+
+output "redirect_url" {
+  description = "The redirect URL for oauth client"
+  value       = local.oauth_redirect_uri
+}
+
+output "oauth_manual_config_required" {
+  description = "ACTION REQUIRED: You must manually register the Redirect URI in the Google Cloud Console."
+  value       = "Please go to APIs & Services -> Credentials -> OAuth 2.0 Client ID, find your client, and add the 'redirect_url' value (above) to the 'Authorized redirect URIs' list."
 }

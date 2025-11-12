@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 5.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
@@ -13,6 +17,17 @@ provider "google" {
   project = var.project_id
   region  = var.region
 }
+
+# Get Project Number from Project ID
+data "google_project" "current_project" {
+  project_id = var.project_id 
+}
+
+#  openssl rand -base64 32
+resource "random_id" "nextauth_secret_key" {
+  byte_length = 32 
+}
+
 
 # Enable required APIs
 resource "google_project_service" "apis" {
@@ -52,7 +67,7 @@ resource "google_project_iam_member" "service_account_roles" {
     "roles/aiplatform.user",
     "roles/storage.objectAdmin",
     "roles/datastore.user",
-    "roles/texttospeech.serviceAgent",
+    "roles/iam.serviceAccountTokenCreator",
     "roles/cloudtranslate.user",
     "roles/logging.logWriter",
     "roles/monitoring.metricWriter",
@@ -66,11 +81,13 @@ resource "google_project_iam_member" "service_account_roles" {
   depends_on = [google_service_account.storycraft_service_account]
 }
 
+
 # Create Cloud Storage bucket for application assets
 resource "google_storage_bucket" "storycraft_assets" {
   name     = "${var.project_id}-storycraft-assets"
   location = var.region
-
+  
+  force_destroy = true
   uniform_bucket_level_access = true
   
   versioning {
@@ -109,7 +126,8 @@ resource "google_firestore_database" "storycraft_db" {
   name        = var.firestore_database_id
   location_id = var.firestore_location
   type        = "FIRESTORE_NATIVE"
-
+  
+  delete_protection_state = "DELETE_PROTECTION_DISABLED"
   depends_on = [google_project_service.apis]
 }
 
@@ -142,9 +160,55 @@ resource "google_artifact_registry_repository" "storycraft_repo" {
   depends_on = [google_project_service.apis]
 }
 
+# --- Locals Block for Reusable Values and Logic ---
+locals {
+  project_number = data.google_project.current_project.number
+  cloudrun_url = "https://${var.cloudrun_service_name}-${local.project_number}.${var.region}.run.app"
+  oauth_redirect_uri = "${local.cloudrun_url}/api/auth/callback/google"
+
+  # Artifact Registry host URL format (e.g., us-central1-docker.pkg.dev)
+  ar_registry_host = "${var.region}-docker.pkg.dev"
+  ar_repo_id       = google_artifact_registry_repository.storycraft_repo.repository_id
+  image_name_base  = "storycraft"
+
+  # Generate a unique tag based on the content hash of the Dockerfile.
+  # This ensures the image tag only changes when the content changes, use the first 8 characters of the SHA256 hash.
+  image_content_hash = substr(filesha256("${path.module}/../Dockerfile"), 0, 8) 
+  image_tag          = "${local.image_content_hash}" 
+  
+  full_image_path    = "${local.ar_registry_host}/${var.project_id}/${local.ar_repo_id}/${local.image_name_base}:${local.image_tag}"
+}
+
+
+# --- Docker Build and Push ---
+# This null_resource executes local shell commands to build and push the Docker image.
+resource "null_resource" "docker_build_and_push" {
+  depends_on = [google_artifact_registry_repository.storycraft_repo]
+
+  triggers = {
+    # CRITICAL: The resource only runs (and thus builds/pushes) when the image content hash changes.
+    content_hash = local.image_content_hash 
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      # 1. Authenticate Docker CLI to Artifact Registry
+      gcloud auth configure-docker ${local.ar_registry_host} --quiet
+
+      # 2. Build the Docker image with the content-based tag
+      docker build -t "${local.full_image_path}" ../
+
+      # 3. Push the unique image to Artifact Registry
+      docker push "${local.full_image_path}"
+    EOT
+
+    interpreter = ["/bin/bash", "-c"]
+  }
+}
+
 # Cloud Run service
 resource "google_cloud_run_v2_service" "storycraft_service" {
-  name     = "storycraft"
+  name     = var.cloudrun_service_name
   location = var.region
   project  = var.project_id
 
@@ -157,7 +221,7 @@ resource "google_cloud_run_v2_service" "storycraft_service" {
     }
 
     containers {
-      image = var.container_image
+      image = local.full_image_path
 
       ports {
         container_port = 3000
@@ -177,6 +241,11 @@ resource "google_cloud_run_v2_service" "storycraft_service" {
       }
 
       env {
+        name  = "LOCATION"
+        value = var.region
+      }
+
+      env {
         name  = "FIRESTORE_DATABASE_ID"
         value = var.firestore_database_id
       }
@@ -184,6 +253,11 @@ resource "google_cloud_run_v2_service" "storycraft_service" {
       env {
         name  = "GCS_BUCKET_NAME"
         value = google_storage_bucket.storycraft_assets.name
+      }
+
+      env {
+        name  = "GCS_VIDEOS_STORAGE_URI"
+        value = "${google_storage_bucket.storycraft_assets.url}/"
       }
 
       env {
@@ -199,12 +273,28 @@ resource "google_cloud_run_v2_service" "storycraft_service" {
       # NextAuth configuration
       env {
         name  = "NEXTAUTH_URL"
-        value = var.nextauth_url
+        value = local.cloudrun_url
       }
 
       env {
         name  = "NEXTAUTH_SECRET"
-        value = var.nextauth_secret
+        value = random_id.nextauth_secret_key.b64_std
+      }
+
+
+      env {
+        name  = "AUTH_TRUST_HOST"
+        value = local.cloudrun_url
+      }
+      
+      env {
+        name  = "AUTH_GOOGLE_ID"
+        value = var.oauth_client_id
+      }
+
+      env {
+        name  = "AUTH_GOOGLE_SECRET"
+        value = var.oauth_client_secret
       }
 
       # Add other environment variables as needed
@@ -227,7 +317,8 @@ resource "google_cloud_run_v2_service" "storycraft_service" {
     google_project_service.apis,
     google_service_account.storycraft_service_account,
     google_storage_bucket.storycraft_assets,
-    google_firestore_database.storycraft_db
+    google_firestore_database.storycraft_db,
+    null_resource.docker_build_and_push
   ]
 }
 

@@ -1,19 +1,18 @@
 # Copy this file to terraform.tfvars and fill in your values
 
 # Required variables
-project_id = "your-gcp-project-id"
-region     = "us-central1"
+project_id = "your-gcp-project-id"   # The Google Cloud Project ID
+region     = "us-central1"           # The region for Cloud Run and Artifact Registry
+
+# Required Oauth credentials
+oauth_client_id     = "YOUR_CLIENT_ID_FROM_GCP_CONSOLE"
+oauth_client_secret = "YOUR_CLIENT_SECRET_FROM_GCP_CONSOLE"
 
 # Firestore configuration
-firestore_location    = "us-central"
+firestore_location    = "us-central1"
 firestore_database_id = "storycraft-db"
 
-# Container image (update after building and pushing)
-container_image = "us-central1-docker.pkg.dev/your-gcp-project-id/storycraft/storycraft:latest"
-
-# NextAuth configuration
-nextauth_url    = "https://your-cloud-run-url"
-nextauth_secret = "your-nextauth-secret-key-here"
+cloudrun_service_name = "storycraft" 
 
 # Access control
 allow_public_access = true

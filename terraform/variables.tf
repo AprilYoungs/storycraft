@@ -12,30 +12,27 @@ variable "region" {
 variable "firestore_location" {
   description = "The location for Firestore database"
   type        = string
-  default     = "us-central"
+  default     = "us-central1"
 }
 
 variable "firestore_database_id" {
   description = "The Firestore database ID"
   type        = string
-  default     = "storycraft-db"
 }
 
-variable "container_image" {
-  description = "The container image to deploy to Cloud Run"
+variable "cloudrun_service_name" {
+  description = "The name for the Google Cloud Run service."
   type        = string
-  # This should be updated after building and pushing your image
-  # Example: "us-central1-docker.pkg.dev/PROJECT_ID/storycraft/storycraft:latest"
 }
 
-variable "nextauth_url" {
-  description = "The NextAuth URL for authentication"
+
+variable "oauth_client_id" {
+  description = "Oauth client id"
   type        = string
-  # This will be the Cloud Run service URL
 }
 
-variable "nextauth_secret" {
-  description = "The NextAuth secret for JWT signing"
+variable "oauth_client_secret" {
+  description = "oauth client secret"
   type        = string
   sensitive   = true
 }
