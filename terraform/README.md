@@ -67,7 +67,26 @@ oauth_client_id     = "YOUR_CLIENT_ID_FROM_GCP_CONSOLE"
 oauth_client_secret = "YOUR_CLIENT_SECRET_FROM_GCP_CONSOLE"
 ```
 
-## Step 4: Run Terraform Deployment
+## Step 4: Configure User Allowlist (Optional)
+
+By default, the allowlist is empty, which means **all users are allowed to login**.
+
+To restrict access to specific users:
+
+1.  Open the file `lib/allowlist.ts`.
+2.  Add the email addresses of the allowed users to the `allowedUsers` array.
+
+```typescript
+// lib/allowlist.ts
+export const allowedUsers = [
+  "your-email@example.com",
+  "another-user@example.com",
+];
+```
+
+---
+
+## Step 5: Run Terraform Deployment
 
 Execute the standard Terraform workflow commands.
 
@@ -79,7 +98,7 @@ terraform apply --auto-approve
 
 ---
 
-## Step 5: Finalize OAuth Redirect URI
+## Step 6: Finalize OAuth Redirect URI
 
 1.  **Get the Redirect URL:** After `terraform apply` completes, locate the **`redirect_url`** output value:
 
@@ -105,7 +124,7 @@ terraform apply --auto-approve
 
 ---
 
-## Step 6: Access the Application
+## Step 7: Access the Application
 
 Once the redirect URI is saved in the console, your application is fully configured.
 

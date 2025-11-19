@@ -1,6 +1,7 @@
 import NextAuth from "next-auth"
 import type { NextAuthConfig } from "next-auth"
 import Google from "next-auth/providers/google"
+import { allowedUsers } from "@/lib/allowlist"
 
 export const authConfig = {
     pages: {
@@ -24,6 +25,17 @@ export const authConfig = {
 
             return false
         },
+        signIn({ user }) {
+            // If allowlist is empty, allow everyone
+            if (allowedUsers.length === 0) {
+                return true;
+            }
+            // Otherwise, check if user is in the allowlist
+            if (user.email && allowedUsers.includes(user.email)) {
+                return true;
+            }
+            return false;
+        },
         // Add user info to the session token
         async jwt({ token, profile, account }) {
             if (profile) {
@@ -34,12 +46,12 @@ export const authConfig = {
                     token.picture = googleProfile.picture
                 }
             }
-            
+
             // Store Google's stable user ID in the token
             if (account?.provider === 'google' && account.providerAccountId) {
                 token.googleUserId = account.providerAccountId
             }
-            
+
             return token
         },
         // Add user info to the session object
